@@ -36,9 +36,7 @@ import model.services.SellerService;
 
 public class SellerListController implements Initializable, DataChangeListener {
 
-	private SellerService departmentService;
-
-	private ObservableList<Seller> obsList;
+	private SellerService service;
 
 	@FXML
 	private TableView<Seller> tableViewSeller;
@@ -48,17 +46,15 @@ public class SellerListController implements Initializable, DataChangeListener {
 
 	@FXML
 	private TableColumn<Seller, String> tableColumnName;
-	
+
 	@FXML
 	private TableColumn<Seller, String> tableColumnEmail;
-	
+
 	@FXML
 	private TableColumn<Seller, Date> tableColumnBirthDate;
-	
+
 	@FXML
 	private TableColumn<Seller, Double> tableColumnBaseSalary;
-	
-	
 
 	@FXML
 	private TableColumn<Seller, Seller> tableColumnEDIT;
@@ -69,26 +65,22 @@ public class SellerListController implements Initializable, DataChangeListener {
 	@FXML
 	private Button btNew;
 
-	public void setSellerService(SellerService departmentService) {
-		this.departmentService = departmentService;
-	}
+	private ObservableList<Seller> obsList;
 
 	@FXML
 	public void onBtNewAction(ActionEvent event) {
 		Stage parentStage = Utils.currentStage(event);
 		Seller obj = new Seller();
 		createDialogForm(obj, "/gui/SellerForm.fxml", parentStage);
+	}
 
+	public void setSellerService(SellerService service) {
+		this.service = service;
 	}
 
 	@Override
-	public void initialize(URL uri, ResourceBundle rb) {
+	public void initialize(URL url, ResourceBundle rb) {
 		initializeNodes();
-
-	}
-
-	public void onDataChanged() {
-		updateTableView();
 	}
 
 	private void initializeNodes() {
@@ -102,15 +94,13 @@ public class SellerListController implements Initializable, DataChangeListener {
 
 		Stage stage = (Stage) Main.getMainScene().getWindow();
 		tableViewSeller.prefHeightProperty().bind(stage.heightProperty());
-
 	}
 
 	public void updateTableView() {
-		if (departmentService == null) {
+		if (service == null) {
 			throw new IllegalStateException("Service was null");
 		}
-
-		List<Seller> list = departmentService.findAll();
+		List<Seller> list = service.findAll();
 		obsList = FXCollections.observableArrayList(list);
 		tableViewSeller.setItems(obsList);
 		initEditButtons();
@@ -128,17 +118,23 @@ public class SellerListController implements Initializable, DataChangeListener {
 			controller.loadAssociatedObjects();
 			controller.subscribeDataChangeListener(this);
 			controller.updateFormData();
-			
 
 			Stage dialogStage = new Stage();
-			dialogStage.setTitle("Enter Seller Data");
+			dialogStage.setTitle("Enter Seller data");
 			dialogStage.setScene(new Scene(pane));
+			dialogStage.setResizable(false);
 			dialogStage.initOwner(parentStage);
 			dialogStage.initModality(Modality.WINDOW_MODAL);
 			dialogStage.showAndWait();
 		} catch (IOException e) {
-			Alerts.showAlert("IOException", "Error loading view", e.getMessage(), AlertType.ERROR);
+			e.printStackTrace();
+			Alerts.showAlert("IO Exception", "Error loading view", e.getMessage(), AlertType.ERROR);
 		}
+	}
+
+	@Override
+	public void onDataChanged() {
+		updateTableView();
 	}
 
 	private void initEditButtons() {
@@ -154,8 +150,7 @@ public class SellerListController implements Initializable, DataChangeListener {
 					return;
 				}
 				setGraphic(button);
-				button.setOnAction(
-						event -> createDialogForm(obj, "/gui/SellerForm.fxml", Utils.currentStage(event)));
+				button.setOnAction(event -> createDialogForm(obj, "/gui/SellerForm.fxml", Utils.currentStage(event)));
 			}
 		});
 	}
@@ -178,22 +173,19 @@ public class SellerListController implements Initializable, DataChangeListener {
 		});
 	}
 
-	protected void removeEntity(Seller obj) {
+	private void removeEntity(Seller obj) {
 		Optional<ButtonType> result = Alerts.showConfirmation("Confirmation", "Are you sure to delete?");
-		if(result.get() == ButtonType.OK) { 
-			if(departmentService == null) {
+
+		if (result.get() == ButtonType.OK) {
+			if (service == null) {
 				throw new IllegalStateException("Service was null");
 			}
 			try {
-				departmentService.remove(obj);
+				service.remove(obj);
 				updateTableView();
-			}
-			catch(DbIntegrityException e) {
+			} catch (DbIntegrityException e) {
 				Alerts.showAlert("Error removing object", null, e.getMessage(), AlertType.ERROR);
 			}
-			
 		}
-		
 	}
-
 }
